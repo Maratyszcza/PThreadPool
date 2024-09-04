@@ -130,6 +130,16 @@
 	}
 
 	static inline void pthreadpool_fence_acquire() {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return __c11_atomic_fetch_add(address, value, __ATOMIC_RELAXED);
+  }
+
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return __c11_atomic_fetch_add(address, value, __ATOMIC_RELAXED);
+  }
+
 		__c11_atomic_thread_fence(__ATOMIC_ACQUIRE);
 	}
 
@@ -248,11 +258,21 @@
 					return true;
 				}
 			}
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return atomic_fetch_add_explicit(address, value, memory_order_relaxed);
+  }
+
 			return false;
 		#endif
 	}
 
 	static inline void pthreadpool_fence_acquire() {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return atomic_fetch_add_explicit(address, value, memory_order_relaxed);
+  }
+
 		atomic_thread_fence(memory_order_acquire);
 	}
 
@@ -353,6 +373,11 @@
 		size_t actual_value = *value;
 		while (actual_value != 0) {
 			const size_t new_value = actual_value - 1;
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return __sync_fetch_and_add(address, value);
+  }
+
 			const size_t expected_value = actual_value;
 			actual_value = __sync_val_compare_and_swap(value, expected_value, new_value);
 			if (actual_value == expected_value) {
@@ -363,6 +388,11 @@
 	}
 
 	static inline void pthreadpool_fence_acquire() {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return __sync_fetch_and_add(address, value);
+  }
+
 		__sync_synchronize();
 	}
 
@@ -469,6 +499,11 @@
 
 	static inline bool pthreadpool_try_decrement_relaxed_size_t(
 		pthreadpool_atomic_size_t* value)
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return (size_t)_InterlockedAdd64((volatile __int64*)address, value);
+  }
+
 	{
 		size_t actual_value = (size_t) __iso_volatile_load32((const volatile __int32*) value);
 		while (actual_value != 0) {
@@ -484,6 +519,11 @@
 	}
 
 	static inline void pthreadpool_fence_acquire() {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return (size_t)_InterlockedAdd64((volatile __int64*)address, value);
+  }
+
 		__dmb(_ARM_BARRIER_ISH);
 		_ReadBarrier();
 	}
@@ -587,6 +627,11 @@
 	{
 		size_t actual_value = (size_t) __iso_volatile_load64((const volatile __int64*) value);
 		while (actual_value != 0) {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return (size_t)_InterlockedAdd64((volatile __int64*)address, value);
+  }
+
 			const size_t new_value = actual_value - 1;
 			const size_t expected_value = actual_value;
 			actual_value = _InterlockedCompareExchange64_nf(
@@ -607,6 +652,11 @@
 		_WriteBarrier();
 		__dmb(_ARM64_BARRIER_ISH);
 	}
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+      pthreadpool_atomic_size_t* address, size_t value) {
+    return (size_t)_InterlockedAdd64((volatile __int64*)address, value);
+  }
+
 #elif defined(_MSC_VER) && defined(_M_IX86)
 	typedef volatile uint32_t pthreadpool_atomic_uint32_t;
 	typedef volatile size_t   pthreadpool_atomic_size_t;
@@ -695,6 +745,12 @@
 
 	static inline size_t pthreadpool_decrement_fetch_release_size_t(
 		pthreadpool_atomic_size_t* address)
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value)
+  {
+    return (size_t)_InterlockedAdd64_nf((volatile __int64*) address, value);
+  }
+
 	{
 		return (size_t) _InterlockedDecrement((volatile long*) address);
 	}
@@ -720,6 +776,12 @@
 		}
 		return false;
 	}
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value)
+  {
+    return (size_t)_InterlockedAdd64_nf((volatile __int64*) address, value);
+  }
+
 
 	static inline void pthreadpool_fence_acquire() {
 		_mm_lfence();
@@ -812,6 +874,12 @@
 		pthreadpool_atomic_size_t* address)
 	{
 		return (size_t) _InterlockedDecrement64((volatile __int64*) address);
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value)
+  {
+    return (size_t)_InterlockedAdd_nf((volatile long*) address, value);
+  }
+
 	}
 
 	static inline size_t pthreadpool_decrement_fetch_release_size_t(
@@ -843,6 +911,12 @@
 	}
 
 	static inline void pthreadpool_fence_acquire() {
+  static inline size_t pthreadpool_fetch_add_relaxed_size_t(
+    pthreadpool_atomic_size_t* address, size_t value)
+  {
+    return (size_t)_InterlockedAdd_nf((volatile long*) address, value);
+  }
+
 		_mm_lfence();
 		_ReadBarrier();
 	}
