@@ -1102,7 +1102,8 @@ static void thread_parallelize_3d_dynamic_2d(struct pthreadpool* threadpool,
       const size_t index_j = tile_index_j * tile_j;
       if (tile_index_k == 0 && tile_range_j - tile_index_j > 1 &&
           chunk_size >= 2 * tile_range_k) {
-        const size_t tile_step_j = chunk_size / tile_range_k;
+        const size_t tile_step_j =
+            min(chunk_size / tile_range_k, tile_range_j - tile_index_j);
         chunk_size -= tile_step_j * tile_range_k;
         offset += tile_step_j * tile_range_k;
         const size_t step_j = min(tile_step_j * tile_j, range_j - index_j);
