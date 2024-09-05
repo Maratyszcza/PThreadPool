@@ -9,14 +9,20 @@ typedef struct pthreadpool* pthreadpool_t;
 typedef void (*pthreadpool_task_1d_t)(void*, size_t);
 typedef void (*pthreadpool_task_1d_with_thread_t)(void*, size_t, size_t);
 typedef void (*pthreadpool_task_1d_tile_1d_t)(void*, size_t, size_t);
+typedef void (*pthreadpool_task_1d_dynamic_t)(void*, size_t, size_t);
 typedef void (*pthreadpool_task_2d_t)(void*, size_t, size_t);
 typedef void (*pthreadpool_task_2d_with_thread_t)(void*, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_2d_tile_1d_t)(void*, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_2d_tile_2d_t)(void*, size_t, size_t, size_t, size_t);
+typedef void (*pthreadpool_task_2d_dynamic_t)(void*, size_t, size_t, size_t,
+                                              size_t);
+typedef void (*pthreadpool_task_2d_dynamic_1d_t)(void*, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_3d_t)(void*, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_3d_tile_1d_t)(void*, size_t, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_3d_tile_1d_with_thread_t)(void*, size_t, size_t, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_3d_tile_2d_t)(void*, size_t, size_t, size_t, size_t, size_t);
+typedef void (*pthreadpool_task_3d_dynamic_2d_t)(void*, size_t, size_t, size_t,
+                                                 size_t, size_t);
 typedef void (*pthreadpool_task_4d_t)(void*, size_t, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_4d_tile_1d_t)(void*, size_t, size_t, size_t, size_t, size_t);
 typedef void (*pthreadpool_task_4d_tile_2d_t)(void*, size_t, size_t, size_t, size_t, size_t, size_t);
@@ -232,6 +238,41 @@ void pthreadpool_parallelize_1d_tile_1d(
 	uint32_t flags);
 
 /**
+ * Process items on a 1D grid with specified prefered tile size.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, count)
+ *
+ * in parallel where `i` is in the range `[0, range)` and a multiple of the
+ * provided @a tile and `count` is an integer multiple of @a tile unless `i
+ * + count == range`.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range       the number of items on the 1D grid to process.
+ * @param tile        the preferred multiple number of items on the 1D grid to
+ *     process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+void pthreadpool_parallelize_1d_dynamic(pthreadpool_t threadpool,
+                                        pthreadpool_task_1d_dynamic_t function,
+                                        void* context, size_t range,
+                                        size_t tile, uint32_t flags);
+
+/**
  * Process items on a 2D grid.
  *
  * The function implements a parallel version of the following snippet:
@@ -336,6 +377,45 @@ void pthreadpool_parallelize_2d_tile_1d(
 	size_t range_j,
 	size_t tile_j,
 	uint32_t flags);
+
+/**
+ * Process items on a 2D grid with specified prefered tile size along the
+ * last grid dimension.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, count_j)
+ *
+ * in parallel where `i` is in the range `[0, range_i)`, `j` is in the range
+ * `[0, range_j)` and a multiple of the provided @a tile_j, and `count_j` is an
+ * integer multiple of @a tile_j unless `j + count_j == range_j`.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 2D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 2D
+ *     grid to process.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 2D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+void pthreadpool_parallelize_2d_dynamic_1d(
+    pthreadpool_t threadpool, pthreadpool_task_2d_dynamic_1d_t function,
+    void* context, size_t range_i, size_t range_j, size_t tile_j,
+    uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along the
@@ -481,6 +561,50 @@ void pthreadpool_parallelize_2d_tile_2d(
 	size_t tile_i,
 	size_t tile_j,
 	uint32_t flags);
+
+/**
+ * Process items on a 2D grid with specified prefered tile size along each grid
+ * dimension.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, count_i, count_j)
+ *
+ * in parallel where `i` is in the range `[0, range_i)` and a multiple of the
+ * provided @a tile_i, `j` is in the range `[0, range_j)` and a multiple of the
+ * provided @a tile_j, and `count_i` and `count_j` are integer multiples of @a
+ * tile__i and @a tile_j, unless `i + count_i == range_i` or `j + count_j ==
+ * range_j`, respectivly.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 2D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 2D
+ *     grid to process.
+ * @param tile_i        the preferred multiple number of items on the first
+ *     dimension of the 2D grid to process in each function call.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 2D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+void pthreadpool_parallelize_2d_dynamic(pthreadpool_t threadpool,
+                                        pthreadpool_task_2d_dynamic_t function,
+                                        void* context, size_t range_i,
+                                        size_t range_j, size_t tile_i,
+                                        size_t tile_j, uint32_t flags);
 
 /**
  * Process items on a 2D grid with the specified maximum tile size along each
@@ -826,6 +950,54 @@ void pthreadpool_parallelize_3d_tile_2d(
 	size_t tile_j,
 	size_t tile_k,
 	uint32_t flags);
+
+/**
+ * Process items on a 3D grid with specified prefered tile size along the last
+ * two grid dimensions.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, k, count_j, count_k)
+ *
+ * in parallel where:
+ *  - `i` is in the range `[0, range_i)`,
+ *  - `j` is in the range `[0, range_j)` and a multiple of the provided @a
+ *    tile_j,
+ *  - `k` is in the range `[0, range_k)` and a multiple of the provided @a
+ *    tile_k,
+ *  - `count_j` and `count_k` are integer multiples of @a tile__j and @a tile_k,
+ *    unless `j + count_j == range_j` or `k + count_k == range_k`, respectivly.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 3D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 3D
+ *     grid to process.
+ * @param range_k       the number of items on the third dimension of the 3D
+ *     grid to process.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 3D grid to process in each function call.
+ * @param tile_k        the preferred multiple number of items on the third
+ *     dimension of the 3D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+void pthreadpool_parallelize_3d_dynamic_2d(
+    pthreadpool_t threadpool, pthreadpool_task_3d_dynamic_2d_t function,
+    void* context, size_t range_i, size_t range_j, size_t range_k,
+    size_t tile_j, size_t tile_k, uint32_t flags);
 
 /**
  * Process items on a 3D grid with the specified maximum tile size along the
@@ -1509,6 +1681,11 @@ void call_wrapper_1d_tile_1d(void* arg, size_t range_i, size_t tile_i) {
 }
 
 template<class T>
+void call_wrapper_1d_dynamic(void* arg, size_t range_i, size_t tile_i) {
+  (*static_cast<const T*>(arg))(range_i, tile_i);
+}
+
+template<class T>
 void call_wrapper_2d(void* functor, size_t i, size_t j) {
 	(*static_cast<const T*>(functor))(i, j);
 }
@@ -1521,11 +1698,26 @@ void call_wrapper_2d_tile_1d(void* functor,
 }
 
 template<class T>
+void call_wrapper_2d_dynamic_1d(void* functor,
+                             size_t i, size_t range_j, size_t tile_j)
+{
+  (*static_cast<const T*>(functor))(i, range_j, tile_j);
+}
+
+template<class T>
 void call_wrapper_2d_tile_2d(void* functor,
 		                         size_t range_i, size_t range_j,
 		                         size_t tile_i, size_t tile_j)
 {
 	(*static_cast<const T*>(functor))(range_i, range_j, tile_i, tile_j);
+}
+
+template<class T>
+void call_wrapper_2d_dynamic(void* functor,
+                             size_t range_i, size_t range_j,
+                             size_t tile_i, size_t tile_j)
+{
+  (*static_cast<const T*>(functor))(range_i, range_j, tile_i, tile_j);
 }
 
 template<class T>
@@ -1547,6 +1739,14 @@ void call_wrapper_3d_tile_2d(void* functor,
 		                         size_t tile_j, size_t tile_k)
 {
 	(*static_cast<const T*>(functor))(i, range_j, range_k, tile_j, tile_k);
+}
+
+template<class T>
+void call_wrapper_3d_dynamic_2d(void* functor,
+                             size_t i, size_t range_j, size_t range_k,
+                             size_t tile_j, size_t tile_k)
+{
+  (*static_cast<const T*>(functor))(i, range_j, range_k, tile_j, tile_k);
 }
 
 template<class T>
@@ -1694,6 +1894,53 @@ inline void pthreadpool_parallelize_1d_tile_1d(
 }
 
 /**
+ * Process items on a 1D grid with specified prefered tile size.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, count)
+ *
+ * in parallel where `i` is in the range `[0, range)` and a multiple of the
+ * provided @a tile and `count` is an integer multiple of @a tile unless `i
+ * + count == range`.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range       the number of items on the 1D grid to process.
+ * @param tile        the preferred multiple number of items on the 1D grid to
+ *     process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+template<class T>
+inline void pthreadpool_parallelize_1d_dynamic(
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range,
+  size_t tile,
+  uint32_t flags = 0)
+{
+  pthreadpool_parallelize_1d_dynamic(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_1d_dynamic<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range,
+    tile,
+    flags);
+}
+
+/**
  * Process items on a 2D grid.
  *
  * The function implements a parallel version of the following snippet:
@@ -1783,6 +2030,59 @@ inline void pthreadpool_parallelize_2d_tile_1d(
 }
 
 /**
+ * Process items on a 2D grid with specified prefered tile size along the
+ * last grid dimension.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, count_j)
+ *
+ * in parallel where `i` is in the range `[0, range_i)`, `j` is in the range
+ * `[0, range_j)` and a multiple of the provided @a tile_j, and `count_j` is an
+ * integer multiple of @a tile_j unless `j + count_j == range_j`.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 2D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 2D
+ *     grid to process.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 2D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+template<class T>
+inline void pthreadpool_parallelize_2d_dynamic_1d(
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_j,
+  uint32_t flags = 0)
+{
+  pthreadpool_parallelize_2d_dynamic_1d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_2d_dynamic_1d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    tile_j,
+    flags);
+}
+
+/**
  * Process items on a 2D grid with the specified maximum tile size along each
  * grid dimension.
  *
@@ -1832,6 +2132,65 @@ inline void pthreadpool_parallelize_2d_tile_2d(
 		tile_i,
 		tile_j,
 		flags);
+}
+
+/**
+ * Process items on a 2D grid with specified prefered tile size along each grid
+ * dimension.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, count_i, count_j)
+ *
+ * in parallel where `i` is in the range `[0, range_i)` and a multiple of the
+ * provided @a tile_i, `j` is in the range `[0, range_j)` and a multiple of the
+ * provided @a tile_j, and `count_i` and `count_j` are integer multiples of @a
+ * tile__i and @a tile_j, unless `i + count_i == range_i` or `j + count_j ==
+ * range_j`, respectivly.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 2D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 2D
+ *     grid to process.
+ * @param tile_i        the preferred multiple number of items on the first
+ *     dimension of the 2D grid to process in each function call.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 2D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+template<class T>
+inline void pthreadpool_parallelize_2d_dynamic(
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t tile_i,
+  size_t tile_j,
+  uint32_t flags = 0)
+{
+  pthreadpool_parallelize_2d_dynamic(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_2d_dynamic<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    tile_i,
+    tile_j,
+    flags);
 }
 
 /**
@@ -1988,6 +2347,72 @@ inline void pthreadpool_parallelize_3d_tile_2d(
 		tile_j,
 		tile_k,
 		flags);
+}
+
+/**
+ * Process items on a 3D grid with specified prefered tile size along the last
+ * two grid dimensions.
+ *
+ * The function repeatedly calls
+ *
+ *   function(context, i, j, k, count_j, count_k)
+ *
+ * in parallel where:
+ *  - `i` is in the range `[0, range_i)`,
+ *  - `j` is in the range `[0, range_j)` and a multiple of the provided @a
+ *    tile_j,
+ *  - `k` is in the range `[0, range_k)` and a multiple of the provided @a
+ *    tile_k,
+ *  - `count_j` and `count_k` are integer multiples of @a tile__j and @a tile_k,
+ *    unless `j + count_j == range_j` or `k + count_k == range_k`, respectivly.
+ *
+ * The `count`s are chosen such as to minimize the number of calls to @a
+ * function while keeping the computation load balanced across all threads.
+ *
+ * When the call returns, all items have been processed and the thread pool is
+ * ready for a new task.
+ *
+ * @note If multiple threads call this function with the same thread pool,
+ *    the calls are serialized.
+ *
+ * @param threadpool  the thread pool to use for parallelisation. If threadpool
+ *    is NULL, all items are processed serially on the calling thread.
+ * @param function    the function to call for each interval of the given range.
+ * @param context     the first argument passed to the specified function.
+ * @param range_i       the number of items on the first dimension of the 3D
+ *     grid to process.
+ * @param range_j       the number of items on the second dimension of the 3D
+ *     grid to process.
+ * @param range_k       the number of items on the third dimension of the 3D
+ *     grid to process.
+ * @param tile_j        the preferred multiple number of items on the second
+ *     dimension of the 3D grid to process in each function call.
+ * @param tile_k        the preferred multiple number of items on the third
+ *     dimension of the 3D grid to process in each function call.
+ * @param flags       a bitwise combination of zero or more optional flags
+ *    (PTHREADPOOL_FLAG_DISABLE_DENORMALS or PTHREADPOOL_FLAG_YIELD_WORKERS)
+ */
+template<class T>
+inline void pthreadpool_parallelize_3d_dynamic_2d(
+  pthreadpool_t threadpool,
+  const T& functor,
+  size_t range_i,
+  size_t range_j,
+  size_t range_k,
+  size_t tile_j,
+  size_t tile_k,
+  uint32_t flags = 0)
+{
+  pthreadpool_parallelize_3d_dynamic_2d(
+    threadpool,
+    &libpthreadpool::detail::call_wrapper_3d_dynamic_2d<const T>,
+    const_cast<void*>(static_cast<const void*>(&functor)),
+    range_i,
+    range_j,
+    range_k,
+    tile_j,
+    tile_k,
+    flags);
 }
 
 /**

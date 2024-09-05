@@ -1,5 +1,11 @@
+/* Standard C headers */
+#include <stddef.h>
+#include <stdint.h>
+
+/* Dependencies */
 #include <benchmark/benchmark.h>
 
+/* Library header */
 #include <pthreadpool.h>
 
 
@@ -48,6 +54,26 @@ static void pthreadpool_parallelize_1d_tile_1d(benchmark::State& state) {
 }
 BENCHMARK(pthreadpool_parallelize_1d_tile_1d)->UseRealTime()->RangeMultiplier(10)->Range(10, 1000000);
 
+static void compute_1d_dynamic(void*, size_t, size_t) {}
+
+static void pthreadpool_parallelize_1d_dynamic(benchmark::State& state) {
+  pthreadpool_t threadpool = pthreadpool_create(2);
+  const size_t threads = pthreadpool_get_threads_count(threadpool);
+  const size_t items = static_cast<size_t>(state.range(0));
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_1d_dynamic(threadpool, compute_1d_dynamic,
+                                       nullptr /* context */, items * threads,
+                                       1, 0 /* flags */);
+  }
+  pthreadpool_destroy(threadpool);
+
+  /* Do not normalize by thread */
+  state.SetItemsProcessed(int64_t(state.iterations()) * items);
+}
+BENCHMARK(pthreadpool_parallelize_1d_dynamic)
+    ->UseRealTime()
+    ->RangeMultiplier(10)
+    ->Range(10, 1000000);
 
 static void compute_2d(void*, size_t, size_t) {
 }
@@ -95,6 +121,26 @@ static void pthreadpool_parallelize_2d_tile_1d(benchmark::State& state) {
 }
 BENCHMARK(pthreadpool_parallelize_2d_tile_1d)->UseRealTime()->RangeMultiplier(10)->Range(10, 1000000);
 
+static void compute_2d_dynamic_1d(void*, size_t, size_t, size_t) {}
+
+static void pthreadpool_parallelize_2d_dynamic_1d(benchmark::State& state) {
+  pthreadpool_t threadpool = pthreadpool_create(2);
+  const size_t threads = pthreadpool_get_threads_count(threadpool);
+  const size_t items = static_cast<size_t>(state.range(0));
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_2d_dynamic_1d(threadpool, compute_2d_dynamic_1d,
+                                          nullptr /* context */, threads, items,
+                                          1, 0 /* flags */);
+  }
+  pthreadpool_destroy(threadpool);
+
+  /* Do not normalize by thread */
+  state.SetItemsProcessed(int64_t(state.iterations()) * items);
+}
+BENCHMARK(pthreadpool_parallelize_2d_dynamic_1d)
+    ->UseRealTime()
+    ->RangeMultiplier(10)
+    ->Range(10, 1000000);
 
 static void compute_2d_tile_2d(void*, size_t, size_t, size_t, size_t) {
 }
@@ -119,6 +165,26 @@ static void pthreadpool_parallelize_2d_tile_2d(benchmark::State& state) {
 }
 BENCHMARK(pthreadpool_parallelize_2d_tile_2d)->UseRealTime()->RangeMultiplier(10)->Range(10, 1000000);
 
+static void compute_2d_dynamic(void*, size_t, size_t, size_t, size_t) {}
+
+static void pthreadpool_parallelize_2d_dynamic(benchmark::State& state) {
+  pthreadpool_t threadpool = pthreadpool_create(2);
+  const size_t threads = pthreadpool_get_threads_count(threadpool);
+  const size_t items = static_cast<size_t>(state.range(0));
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_2d_dynamic(threadpool, compute_2d_dynamic,
+                                       nullptr /* context */, threads, items, 1,
+                                       1, 0 /* flags */);
+  }
+  pthreadpool_destroy(threadpool);
+
+  /* Do not normalize by thread */
+  state.SetItemsProcessed(int64_t(state.iterations()) * items);
+}
+BENCHMARK(pthreadpool_parallelize_2d_dynamic)
+    ->UseRealTime()
+    ->RangeMultiplier(10)
+    ->Range(10, 1000000);
 
 static void compute_3d(void*, size_t, size_t, size_t) {
 }
@@ -190,6 +256,27 @@ static void pthreadpool_parallelize_3d_tile_2d(benchmark::State& state) {
 }
 BENCHMARK(pthreadpool_parallelize_3d_tile_2d)->UseRealTime()->RangeMultiplier(10)->Range(10, 1000000);
 
+static void compute_3d_dynamic_2d(void*, size_t, size_t, size_t, size_t,
+                                  size_t) {}
+
+static void pthreadpool_parallelize_3d_dynamic_2d(benchmark::State& state) {
+  pthreadpool_t threadpool = pthreadpool_create(2);
+  const size_t threads = pthreadpool_get_threads_count(threadpool);
+  const size_t items = static_cast<size_t>(state.range(0));
+  while (state.KeepRunning()) {
+    pthreadpool_parallelize_3d_dynamic_2d(threadpool, compute_3d_dynamic_2d,
+                                          nullptr /* context */, 1, threads,
+                                          items, 1, 1, 0 /* flags */);
+  }
+  pthreadpool_destroy(threadpool);
+
+  /* Do not normalize by thread */
+  state.SetItemsProcessed(int64_t(state.iterations()) * items);
+}
+BENCHMARK(pthreadpool_parallelize_3d_dynamic_2d)
+    ->UseRealTime()
+    ->RangeMultiplier(10)
+    ->Range(10, 1000000);
 
 static void compute_4d(void*, size_t, size_t, size_t, size_t) {
 }

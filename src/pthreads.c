@@ -1,12 +1,12 @@
 /* Standard C headers */
 #include <assert.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 /* Configuration header */
+#include "fxdiv.h"
 #include "threadpool-common.h"
 
 /* POSIX headers */

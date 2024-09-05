@@ -106,6 +106,21 @@ struct pthreadpool_1d_tile_1d_params {
 	size_t tile;
 };
 
+struct pthreadpool_1d_dynamic_params {
+  /**
+   * Copy of the range argument passed to the pthreadpool_parallelize_1d_dynamic function.
+   */
+  size_t range;
+  /**
+   * Offset of the next element in @a range to process.
+   */
+  pthreadpool_atomic_size_t curr_offset;
+  /**
+   * Copy of the tile argument passed to the pthreadpool_parallelize_1d_dynamic function.
+   */
+  size_t tile;
+};
+
 struct pthreadpool_2d_params {
 	/**
 	 * FXdiv divisor for the range_j argument passed to the pthreadpool_parallelize_2d function.
@@ -149,6 +164,25 @@ struct pthreadpool_2d_tile_1d_with_uarch_params {
 	 * FXdiv divisor for the divide_round_up(range_j, tile_j) value.
 	 */
 	struct fxdiv_divisor_size_t tile_range_j;
+};
+
+struct pthreadpool_2d_dynamic_1d_params {
+  /**
+   * Copy of the range_i argument passed to the pthreadpool_parallelize_2d_dynamic_1d function.
+   */
+  size_t range_i;
+  /**
+   * Copy of the range_j argument passed to the pthreadpool_parallelize_2d_dynamic_1d function.
+   */
+  size_t range_j;
+  /**
+   * Offset of the next element to process.
+   */
+  pthreadpool_atomic_size_t curr_offset;
+  /**
+   * Copy of the tile_j argument passed to the pthreadpool_parallelize_2d_dynamic_1d function.
+   */
+  size_t tile_j;
 };
 
 struct pthreadpool_2d_tile_2d_params {
@@ -203,6 +237,29 @@ struct pthreadpool_2d_tile_2d_with_uarch_params {
 	 * FXdiv divisor for the divide_round_up(range_j, tile_j) value.
 	 */
 	struct fxdiv_divisor_size_t tile_range_j;
+};
+
+struct pthreadpool_2d_dynamic_params {
+  /**
+   * Copy of the range_i argument passed to the pthreadpool_parallelize_2d_dynamic function.
+   */
+  size_t range_i;
+  /**
+   * Copy of the range_j argument passed to the pthreadpool_parallelize_2d_dynamic function.
+   */
+  size_t range_j;
+  /**
+   * Offset of the next element to process.
+   */
+  pthreadpool_atomic_size_t curr_offset;
+  /**
+   * Copy of the tile_i argument passed to the pthreadpool_parallelize_2d_dynamic function.
+   */
+  size_t tile_i;
+  /**
+   * Copy of the tile_j argument passed to the pthreadpool_parallelize_2d_dynamic function.
+   */
+  size_t tile_j;
 };
 
 struct pthreadpool_3d_params {
@@ -322,6 +379,33 @@ struct pthreadpool_3d_tile_2d_with_uarch_params {
 	 * FXdiv divisor for the divide_round_up(range_k, tile_k) value.
 	 */
 	struct fxdiv_divisor_size_t tile_range_k;
+};
+
+struct pthreadpool_3d_dynamic_2d_params {
+  /**
+   * Copy of the range_i argument passed to the pthreadpool_parallelize_3d_dynamic_2d function.
+   */
+  size_t range_i;
+  /**
+   * Copy of the range_j argument passed to the pthreadpool_parallelize_3d_dynamic_2d function.
+   */
+  size_t range_j;
+  /**
+   * Copy of the range_k argument passed to the pthreadpool_parallelize_3d_dynamic_2d function.
+   */
+  size_t range_k;
+  /**
+   * Offset of the next element to process.
+   */
+  pthreadpool_atomic_size_t curr_offset;
+  /**
+   * Copy of the tile_j argument passed to the pthreadpool_parallelize_3d_dynamic_2d function.
+   */
+  size_t tile_j;
+  /**
+   * Copy of the tile_k argument passed to the pthreadpool_parallelize_3d_dynamic_2d function.
+   */
+  size_t tile_k;
 };
 
 struct pthreadpool_4d_params {
@@ -675,16 +759,20 @@ struct PTHREADPOOL_CACHELINE_ALIGNED pthreadpool {
 	union {
 		struct pthreadpool_1d_with_uarch_params parallelize_1d_with_uarch;
 		struct pthreadpool_1d_tile_1d_params parallelize_1d_tile_1d;
+		struct pthreadpool_1d_dynamic_params parallelize_1d_dynamic;
 		struct pthreadpool_2d_params parallelize_2d;
 		struct pthreadpool_2d_tile_1d_params parallelize_2d_tile_1d;
 		struct pthreadpool_2d_tile_1d_with_uarch_params parallelize_2d_tile_1d_with_uarch;
+		struct pthreadpool_2d_dynamic_1d_params parallelize_2d_dynamic_1d;
 		struct pthreadpool_2d_tile_2d_params parallelize_2d_tile_2d;
 		struct pthreadpool_2d_tile_2d_with_uarch_params parallelize_2d_tile_2d_with_uarch;
+		struct pthreadpool_2d_dynamic_params parallelize_2d_dynamic;
 		struct pthreadpool_3d_params parallelize_3d;
 		struct pthreadpool_3d_tile_1d_params parallelize_3d_tile_1d;
 		struct pthreadpool_3d_tile_1d_with_uarch_params parallelize_3d_tile_1d_with_uarch;
 		struct pthreadpool_3d_tile_2d_params parallelize_3d_tile_2d;
 		struct pthreadpool_3d_tile_2d_with_uarch_params parallelize_3d_tile_2d_with_uarch;
+		struct pthreadpool_3d_dynamic_2d_params parallelize_3d_dynamic_2d;
 		struct pthreadpool_4d_params parallelize_4d;
 		struct pthreadpool_4d_tile_1d_params parallelize_4d_tile_1d;
 		struct pthreadpool_4d_tile_2d_params parallelize_4d_tile_2d;
