@@ -184,8 +184,13 @@ static void thread_parallelize_1d_dynamic(struct pthreadpool* threadpool,
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  size_t offset = 0;
-  while (offset < count) {
+  while (1) {
+  	/* Get the current offset, quit if there is no more work left. */
+  	size_t offset = params->curr_offset;
+  	if (offset > count) {
+  		break;
+  	}
+
     /* Choose a chunk size based on the remaining amount of work and the current
      * number of threads, rounded up to the highest integer multiple of `tile`.
      */
@@ -463,9 +468,13 @@ static void thread_parallelize_2d_dynamic_1d(struct pthreadpool* threadpool,
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  /* While there is work to be done... */
-  size_t offset = 0;
-  while (offset < count) {
+  while (1) {
+  	/* Get the current offset, quit if there is no more work left. */
+  	size_t offset = params->curr_offset;
+  	if (offset > count) {
+  		break;
+  	}
+
     /* Choose a chunk size based on the remaining amount of work and the current
      * number of threads. */
     size_t chunk_size = max((count - offset) / (2 * threads_count), 1);
@@ -623,9 +632,13 @@ static void thread_parallelize_2d_dynamic(struct pthreadpool* threadpool,
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  /* While there is work to be done... */
-  size_t offset = 0;
-  while (offset < count) {
+  while (1) {
+  	/* Get the current offset, quit if there is no more work left. */
+  	size_t offset = params->curr_offset;
+  	if (offset > count) {
+  		break;
+  	}
+
     /* Choose a chunk size based on the remaining amount of work and the current
      * number of threads. */
     size_t chunk_size = max((count - offset) / (2 * threads_count), 1);
@@ -1077,9 +1090,13 @@ static void thread_parallelize_3d_dynamic_2d(struct pthreadpool* threadpool,
           &threadpool->task);
   void* const argument = pthreadpool_load_relaxed_void_p(&threadpool->argument);
 
-  /* While there is work to be done... */
-  size_t offset = 0;
-  while (offset < count) {
+  while (1) {
+  	/* Get the current offset, quit if there is no more work left. */
+  	size_t offset = params->curr_offset;
+  	if (offset > count) {
+  		break;
+  	}
+
     /* Choose a chunk size based on the remaining amount of work and the current
      * number of threads. */
     size_t chunk_size = max((count - offset) / (2 * threads_count), 1);
